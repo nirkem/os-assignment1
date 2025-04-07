@@ -4,7 +4,7 @@
 #include "user/user.h"
 
 #define ARRAY_SIZE (1 << 16) 
-#define NUM_CHILDREN 4       
+#define NUM_CHILDREN 6       
 
 int main(int argc, char* argv[]) {
 
@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
 
       // Calculate current child sum
       start = i * (ARRAY_SIZE / NUM_CHILDREN);
-      end = start + (ARRAY_SIZE / NUM_CHILDREN);
+      end = (i == NUM_CHILDREN - 1) ? ARRAY_SIZE : start + (ARRAY_SIZE / NUM_CHILDREN);
 
       int partial_sum = 0;
       for (int j = start; j < end; j++) {

@@ -657,6 +657,28 @@ void procdump(void) {
   }
 }
 
+// Undo children that forkn prepared but never ran: drop the file and
+// directory references they took from the parent, then free them.
+static void forkn_discard(struct proc** children, int count) {
+  for (int j = 0; j < count; j++) {
+    struct proc* np = children[j];
+    for (int fd = 0; fd < NOFILE; fd++) {
+      if (np->ofile[fd]) {
+        fileclose(np->ofile[fd]);
+        np->ofile[fd] = 0;
+      }
+    }
+    begin_op();
+    iput(np->cwd);
+    end_op();
+    np->cwd = 0;
+
+    acquire(&np->lock);
+    freeproc(np);
+    release(&np->lock);
+  }
+}
+
 int forkn(int n, uint64 pids) {
 
   struct proc* p = myproc();
@@ -674,11 +696,7 @@ int forkn(int n, uint64 pids) {
     // If failed
     if (np == 0) {
       // Clean already-created child processes
-      for (int j = 0; j < i; j++) {
-        acquire(&children[j]->lock);
-        freeproc(children[j]);
-        release(&children[j]->lock);
-      }
+      forkn_discard(children, i);
       return -1;
     }
 
@@ -686,11 +704,7 @@ int forkn(int n, uint64 pids) {
     if (uvmcopy(p->pagetable, np->pagetable, p->sz) < 0) {
       freeproc(np);
       release(&np->lock);
-      for (int j = 0; j < i; j++) {
-        acquire(&children[j]->lock);
-        freeproc(children[j]);
-        release(&children[j]->lock);
-      }
+      forkn_discard(children, i);
       return -1;
     }
 
@@ -717,11 +731,7 @@ int forkn(int n, uint64 pids) {
   for (i = 0; i < n; i++) {
     pid = children[i]->pid;
     if (copyout(p->pagetable, pids + i * sizeof(int), (char*)&pid, sizeof(int)) < 0) {
-      for (int j = 0; j < n; j++) {
-        acquire(&children[j]->lock);
-        freeproc(children[j]);
-        release(&children[j]->lock);
-      }
+      forkn_discard(children, n);
       return -1;
     }
   }
@@ -804,6 +814,10 @@ int waitall(uint64 n, uint64 statuses) {
   }
 
 
+  // The results are in local variables now, so let go of wait_lock first:
+  // returning early on a copyout error must not leave it held.
+  release(&wait_lock);
+
   // Copy results to user space after all children have exited.
   if (n != 0 && copyout(p->pagetable, n, (char*)&count, sizeof(count)) < 0) {
     return -1;
@@ -812,6 +826,5 @@ int waitall(uint64 n, uint64 statuses) {
     return -1;
   }
 
-  release(&wait_lock);
   return 0;
 }

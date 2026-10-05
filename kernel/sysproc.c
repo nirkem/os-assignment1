@@ -11,8 +11,9 @@ sys_exit(void) {
   int n;
   char msg[32];
   argint(0, &n);
+  // exit never fails: a missing or unreadable message just becomes an empty one
   if (argstr(1, msg, sizeof(msg)) < 0) {
-    return -1;
+    msg[0] = '\0';
   }
 
   exit(n, msg);

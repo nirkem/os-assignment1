@@ -104,5 +104,5 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  char exit_msg[32];           // Nir
+  char exit_msg[MAXEXITMSG];   // Message passed to exit(), read by wait()
 };

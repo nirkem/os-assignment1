@@ -11,3 +11,5 @@
 #define NBUF         (MAXOPBLOCKS*3)  // size of disk block cache
 #define FSSIZE       2000  // size of file system in blocks
 #define MAXPATH      128   // maximum file path name
+#define MAXEXITMSG   32    // max exit message length, including the null byte
+#define NFORKN       16    // max children one forkn call can create

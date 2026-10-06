@@ -3,7 +3,5 @@
         "types.h": "c",
         "riscv.h": "c",
         "defs.h": "c",
-        "stat.h": "c",
-        "spinlock.h": "c"
     },
 }
